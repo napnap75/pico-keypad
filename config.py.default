@@ -1,0 +1,6 @@
+WIFI_SSID = ''
+WIFI_PASSWORD = ''
+
+MQTT_SERVER = b''
+MQTT_CLIENT_ID = ''
+MQTT_TOPIC = ''
