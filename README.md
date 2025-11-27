@@ -11,6 +11,7 @@ The configuration file `config.py` should contain the following settings (you ca
 - MQTT_SERVER: The IP address or hostname of your MQTT server
 - MQTT_CLIENT_ID: A unique client ID for the MQTT connection
 - MQTT_TOPIC: The base topic for the keypad events
+- HEALTHCHECKS_URL: (optional) The URL of a Healthchecks.io ping endpoint to monitor the system's health
 
 # MQTT messages
 

@@ -1,6 +1,7 @@
 import asyncio
 import machine
 import network
+import requests
 import time
 
 from keypad.keypad import RGBKeypad
@@ -10,6 +11,11 @@ import config
 mqtt_client = None
 machine_status = 'starting'
 last_ping = time.time()
+
+def uuid(value):
+    hex = '%032x' % value
+    return '%s-%s-%s-%s-%s' % (hex[:8], hex[8:12], hex[12:16], hex[16:20], hex[20:])
+
 
 async def manage_connection():
     global mqtt_client
@@ -59,7 +65,14 @@ async def manage_connection():
         await asyncio.sleep(25)
         if machine_status == 'running':
             try:
-                mqtt_client.publish(config.MQTT_TOPIC + '/ping', str(time.time()))
+                ping_time = time.time()
+                mqtt_client.publish(config.MQTT_TOPIC + '/ping', str(ping_time))
+                try:
+                    if config.HEALTHCHECKS_URL != '':
+                        requests.get(config.HEALTHCHECKS_URL + '/start?rid=' + uuid(ping_time), timeout=10)
+                except Exception  as e:
+                    print('Error sending healthcheck ping:', e)
+
                 await asyncio.sleep(5)
 
                 if machine_status == 'running' and last_ping + 90 < time.time():
@@ -146,7 +159,7 @@ async def manage_buttons():
                     print('Error publishing message on MQTT:', e)
                     machine_status = 'down'            
                     print('MQTT down !')
-            print('Sent ', key_string, ' on topic ', config.MQTT_TOPIC + '/keypressed')
+            print('Sent ', key_string, ' on topic ', config.MQTT_TOPIC, '/keypressed')
       
         if machine_status == 'running':
             try:
@@ -168,6 +181,13 @@ def manage_message(topic, message):
 
     if topic.decode('utf-8') == config.MQTT_TOPIC + '/pong':
         last_ping = int(message.decode('utf-8'))
+
+        try:
+            if config.HEALTHCHECKS_URL != '':
+                requests.get(config.HEALTHCHECKS_URL + '?rid=' + uuid(last_ping), timeout=10)
+        except Exception as e:
+            print('Error sending healthcheck ping:', e)
+
         return
 
     topics = topic[len(config.MQTT_TOPIC)+1:].decode('utf-8').split('/')
